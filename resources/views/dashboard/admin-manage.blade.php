@@ -146,6 +146,8 @@
     <script>
         const API = '{{ url("/api") }}';
         const TICKET_SHOW_URL = '{{ url("/ticket") }}';
+        const TICKET_EDIT_URL = '{{ url("/ticket") }}';
+        const OPEN_EDIT_TICKET_ID = {{ isset($openEditTicketId) ? (int) $openEditTicketId : 'null' }};
         const TOKEN_KEY = 'auth_token';
         function getToken() { return localStorage.getItem(TOKEN_KEY); }
         function setToken(t) { t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY); }
@@ -351,12 +353,11 @@
                     <td class="py-2 px-2 text-slate-500">${t.updated_at ? new Date(t.updated_at).toLocaleDateString() : '-'}</td>
                     <td class="py-2 px-2 whitespace-nowrap">
                         <a href="${TICKET_SHOW_URL}/${t.id}" class="text-indigo-600 mr-2 hover:underline">View</a>
-                        <button type="button" class="ticket-edit text-indigo-600 mr-2" data-id="${t.id}">Edit</button>
+                        <a href="${TICKET_EDIT_URL}/${t.id}/edit" class="text-indigo-600 mr-2 hover:underline">Edit</a>
                         <button type="button" class="ticket-delete text-red-600" data-id="${t.id}">Delete</button>
                     </td>
                 </tr>`;
             }).join('')}</tbody></table></div>`;
-            el.querySelectorAll('.ticket-edit').forEach(btn => btn.addEventListener('click', e => editTicket(Number(e.currentTarget.dataset.id))));
             el.querySelectorAll('.ticket-delete').forEach(btn => btn.addEventListener('click', e => deleteTicket(Number(e.currentTarget.dataset.id))));
         }
 
@@ -497,8 +498,7 @@
             currentUser = data.user;
             showContent(currentUser.name);
             await loadTickets();
-            const params = new URLSearchParams(window.location.search);
-            const editId = params.get('edit');
+            const editId = OPEN_EDIT_TICKET_ID ?? new URLSearchParams(window.location.search).get('edit');
             if (editId) { editTicket(parseInt(editId, 10)); }
         }
         document.getElementById('btn-logout').addEventListener('click', async () => {

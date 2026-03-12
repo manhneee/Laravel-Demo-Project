@@ -29,7 +29,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/', [AdminController::class, 'index']);
         Route::get('/dashboard', [AdminDashboardController::class, 'index']);
         Route::get('/logs', [AdminLogsController::class, 'index']);
-        Route::get('/tickets/{ticket}/logs', [TicketController::class, 'ticketLogs']);
         Route::apiResource('users', AdminUserController::class)->only(['index', 'store', 'update', 'destroy']);
     });
 });

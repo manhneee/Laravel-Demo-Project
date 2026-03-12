@@ -42,6 +42,11 @@ Route::get('/ticket/{id}', function ($id) {
     return view('ticket.show', ['ticketId' => $id]);
 })->name('ticket.show')->where('id', '[0-9]+');
 
+// Admin: edit ticket (opens manage page with edit form for this ticket)
+Route::get('/ticket/{id}/edit', function ($id) {
+    return view('dashboard.admin-manage', ['openEditTicketId' => (int) $id]);
+})->name('ticket.edit')->where('id', '[0-9]+');
+
 // Login form (API-driven: POST /api/login, then redirect to home)
 Route::get('/login', function () {
     return view('auth.login');

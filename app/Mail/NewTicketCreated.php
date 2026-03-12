@@ -25,7 +25,7 @@ class NewTicketCreated extends Mailable implements ShouldQueue
     public function __construct(Ticket $ticket)
     {
         $this->ticket = $ticket->load(['priority', 'createdBy']);
-        $this->editUrl = URL::to('/dashboard/admin/manage?edit=' . $ticket->id);
+        $this->editUrl = route('ticket.edit', ['id' => $ticket->id]);
     }
 
     /**
