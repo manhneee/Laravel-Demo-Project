@@ -2,9 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Category;
-use App\Models\Label;
-use App\Models\Priority;
 use App\Mail\NewTicketCreated;
 use App\Models\Ticket;
 use App\Models\TicketActivityLog;
@@ -28,7 +25,7 @@ class TicketController extends Controller
             ->with(['priority', 'createdBy', 'assignedUser', 'labels', 'categories'])
             ->latest()
             ->get();
-
+            
         return response()->json($tickets);
     }
 
@@ -76,6 +73,7 @@ class TicketController extends Controller
             'description' => 'Ticket created',
             'old_values' => $oldValues,
             'new_values' => $newValues,
+            // 'attachments' => $request->attachments,
         ]);
 
         $admins = User::where('role', 'admin')->get();
@@ -154,7 +152,7 @@ class TicketController extends Controller
 
     public function destroy(Ticket $ticket)
     {
-        $oldValues = $ticket->only(['title', 'description', 'priority_id', 'status', 'assigned_user_id']);
+        $oldValues = $ticket->only(['ticket_id','title', 'description', 'priority_id', 'status', 'assigned_user_id']);
        
         TicketActivityLog::create([
             'ticket_id' => $ticket->id,
@@ -170,6 +168,25 @@ class TicketController extends Controller
         ], 200);
     }
 
+    public function indexDeleted()
+    {
+
+        $this->authorize('indexDeleted', Ticket::class);
+        $tickets = Ticket::query()
+        ->with(['priority', 'labels', 'categories', 'createdBy', 'assignedUser'])
+        ->onlyTrashed()
+        ->latest()
+        ->get();
+        return response()->json($tickets);
+    }
+
+    public function ticketRestore($id)
+    {
+        $this->authorize('ticketRestore', Ticket::class);
+        Ticket::query()->where('id', $id)->restore();
+        return response()->json(['message' => 'Ticket restored successfully'], 200);
+    }
+
     public function ticketLogs(Ticket $ticket)
     {
         $logs = $ticket->activityLogs()->orderBy('created_at')->get();
@@ -181,6 +198,5 @@ class TicketController extends Controller
         $comments = $ticket->comments()->orderBy('created_at')->get();
         return response()->json($comments);
     }
-    
-    
+
 }

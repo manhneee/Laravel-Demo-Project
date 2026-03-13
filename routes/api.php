@@ -19,16 +19,21 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
     Route::get('/dashboard', [DashboardController::class, 'index']);
-    Route::apiResource('tickets', TicketController::class);
+    Route::get('tickets/deletedTickets', [TicketController::class, 'indexDeleted']);
+    Route::post('/tickets/{id}/restore', [TicketController::class, 'ticketRestore']);
+    
     Route::post('tickets/{ticket}/comments', [TicketController::class, 'storeComment']);
     Route::get('priorities', [PriorityController::class, 'index']);
+    Route::apiResource('tickets', TicketController::class);
     Route::apiResource('labels', LabelController::class);
     Route::apiResource('categories', CategoryController::class);
-
+    
     Route::prefix('admin')->middleware('admin')->group(function () {
         Route::get('/', [AdminController::class, 'index']);
         Route::get('/dashboard', [AdminDashboardController::class, 'index']);
         Route::get('/logs', [AdminLogsController::class, 'index']);
+        Route::get('users/deletedUsers', [AdminUserController::class, 'indexDeleted']);
+        Route::post('users/{id}/restore', [AdminUserController::class, 'userRestore']);
         Route::apiResource('users', AdminUserController::class)->only(['index', 'store', 'update', 'destroy']);
-    });
+    }); 
 });

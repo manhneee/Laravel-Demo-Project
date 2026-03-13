@@ -49,4 +49,15 @@ class UserController extends Controller
         $user->delete();
         return response()->json(['message' => 'User deleted successfully'], 200);
     }
+    public function indexDeleted()
+    {
+        $deletedUsers = User::query()
+        ->onlyTrashed()->orderBy('name')->get();
+        return response()->json($deletedUsers, 200);
+    }
+    public function userRestore($id)
+    {
+        User::query()->where('id', $id)->restore();
+        return response()->json(['message' => 'User restored successfully'], 200);
+    }
 }

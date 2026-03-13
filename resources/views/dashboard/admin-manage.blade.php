@@ -47,11 +47,18 @@
             </div>
 
             <div id="panel-tickets" class="admin-panel bg-white rounded-xl border border-slate-200 p-6">
-                <div class="flex justify-between items-center mb-4">
+                <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
                     <h2 class="text-lg font-semibold">Tickets</h2>
-                    <button type="button" id="btn-new-ticket" class="rounded bg-green-600 text-white px-3 py-1.5 text-sm font-medium hover:bg-green-700">New Ticket</button>
+                    <div class="flex gap-2">
+                        <button type="button" id="btn-deleted-tickets" class="rounded bg-amber-600 text-white px-3 py-1.5 text-sm font-medium hover:bg-amber-700">Tickets Bin</button>
+                        <button type="button" id="btn-new-ticket" class="rounded bg-green-600 text-white px-3 py-1.5 text-sm font-medium hover:bg-green-700">New Ticket</button>
+                    </div>
                 </div>
                 <div id="tickets-list" class="text-slate-500 text-sm">Loading...</div>
+                <div id="deleted-tickets-panel" class="hidden mt-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                    <h3 class="text-sm font-semibold text-slate-700 mb-2">Deleted tickets</h3>
+                    <div id="deleted-tickets-list" class="text-slate-500 text-sm">Loading...</div>
+                </div>
                 <div id="ticket-detail" class="hidden mt-4 p-4 bg-slate-50 rounded-lg border border-slate-200"></div>
                 <div id="ticket-form" class="hidden mt-4 p-4 bg-slate-50 rounded-lg border border-slate-200 space-y-4">
                     <h3 class="font-medium text-slate-800" id="ticket-form-title">Edit Ticket</h3>
@@ -98,7 +105,7 @@
             <div id="panel-users" class="admin-panel hidden bg-white rounded-xl border border-slate-200 p-6">
                 <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
                     <h2 class="text-lg font-semibold">Users</h2>
-                    <div class="flex gap-2 flex-wrap">
+                    <div class="flex gap-2 flex-wrap items-center">
                         <input type="text" id="user-name" placeholder="Name" class="rounded border border-slate-300 px-3 py-1.5 text-sm w-28">
                         <input type="email" id="user-email" placeholder="Email" class="rounded border border-slate-300 px-3 py-1.5 text-sm w-40">
                         <input type="password" id="user-password" placeholder="Password" class="rounded border border-slate-300 px-3 py-1.5 text-sm w-28">
@@ -108,9 +115,14 @@
                             <option value="admin">Admin</option>
                         </select>
                         <button type="button" id="btn-add-user" class="rounded bg-green-600 text-white px-3 py-1.5 text-sm hover:bg-green-700">Add User</button>
+                        <button type="button" id="btn-deleted-users" class="rounded bg-amber-600 text-white px-3 py-1.5 text-sm hover:bg-amber-700">Deleted users</button>
                     </div>
                 </div>
                 <div id="users-list" class="text-slate-500 text-sm">Loading...</div>
+                <div id="deleted-users-panel" class="hidden mt-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                    <h3 class="text-sm font-semibold text-slate-700 mb-2">Deleted users</h3>
+                    <div id="deleted-users-list" class="text-slate-500 text-sm">Loading...</div>
+                </div>
             </div>
             <div id="panel-logs" class="admin-panel hidden bg-white rounded-xl border border-slate-200 p-6">
                 <h2 class="text-lg font-semibold mb-4">Ticket Logs</h2>
@@ -326,6 +338,47 @@
             document.getElementById('ticket-form').classList.add('hidden');
             editingTicketId = null;
         });
+        document.getElementById('btn-deleted-tickets').addEventListener('click', async () => {
+            const panel = document.getElementById('deleted-tickets-panel');
+            panel.classList.toggle('hidden');
+            if (!panel.classList.contains('hidden')) loadDeletedTickets();
+        });
+
+        async function loadDeletedTickets() {
+            const el = document.getElementById('deleted-tickets-list');
+            el.innerHTML = 'Loading...';
+            const { ok, data } = await api('/tickets/deletedTickets');
+            if (!ok) { el.innerHTML = data.message || 'Failed'; return; }
+            const list = Array.isArray(data) ? data : (data.data || []);
+            if (!list.length) { el.innerHTML = 'No deleted tickets.'; return; }
+            const desc = (s) => (s && s.length > 40) ? s.substring(0, 40) + '…' : (s || '-');
+            const names = (arr) => (arr && arr.length) ? arr.map(x => x.name).join(', ') : '-';
+            el.innerHTML = `<div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="border-b bg-slate-50">
+                <th class="text-left py-2 px-2">#</th><th class="text-left py-2 px-2">Title</th><th class="text-left py-2 px-2">Description</th>
+                <th class="text-left py-2 px-2">Deleted at</th><th class="text-left py-2 px-2">Actions</th>
+            </tr></thead><tbody>${list.map(t => {
+                const cb = t.created_by || t.createdBy;
+                const deletedAt = t.deleted_at ? new Date(t.deleted_at).toLocaleString() : '-';
+                return `<tr class="border-b border-slate-100 hover:bg-slate-50">
+                    <td class="py-2 px-2">${t.id}</td>
+                    <td class="py-2 px-2 font-medium text-slate-800">${(t.title || '-')}</td>
+                    <td class="py-2 px-2 max-w-[200px] text-slate-600">${desc(t.description)}</td>
+                    <td class="py-2 px-2 text-slate-500">${deletedAt}</td>
+                    <td class="py-2 px-2">
+                        <button type="button" class="ticket-restore rounded bg-indigo-600 text-white px-2 py-1 text-xs hover:bg-indigo-700" data-id="${t.id}">Restore</button>
+                    </td>
+                </tr>`;
+            }).join('')}</tbody></table></div>`;
+            el.querySelectorAll('.ticket-restore').forEach(btn => btn.addEventListener('click', async (e) => {
+                
+                if (confirm('Restore this ticket?')) {
+                const id = Number(e.currentTarget.dataset.id);
+                    const { ok: okRestore } = await api('/tickets/' + id + '/restore', { method: 'POST' });
+                    if (okRestore) { showToast('Ticket restored'); loadTickets(); loadDeletedTickets(); }
+                    else showToast('Restore failed');
+                }
+            }));
+        }
 
         async function loadTickets() {
             const { ok, data } = await api('/tickets');
@@ -406,6 +459,37 @@
             if (ok) { showToast('User added'); document.getElementById('user-name').value = ''; document.getElementById('user-email').value = ''; document.getElementById('user-password').value = ''; loadUsers(); }
             else showToast(data.message || 'Failed');
         });
+        document.getElementById('btn-deleted-users').addEventListener('click', async () => {
+            const panel = document.getElementById('deleted-users-panel');
+            panel.classList.toggle('hidden');
+            if (!panel.classList.contains('hidden')) loadDeletedUsers();
+        });
+
+        async function loadDeletedUsers() {
+            const el = document.getElementById('deleted-users-list');
+            el.innerHTML = 'Loading...';
+            const { ok, data } = await api('/admin/users/deletedUsers');
+            if (!ok) { el.innerHTML = data.message || 'Failed'; return; }
+            const list = Array.isArray(data) ? data : (data.data || []);
+            if (!list.length) { el.innerHTML = 'No deleted users.'; return; }
+            el.innerHTML = list.map(u => `
+                <div class="flex items-center justify-between py-2 border-b border-slate-100 gap-2">
+                    <span class="min-w-0 text-slate-700">${u.name || '-'} (${u.email || '-'})</span>
+                    <span class="text-slate-500 text-xs">${u.deleted_at ? new Date(u.deleted_at).toLocaleString() : ''}</span>
+                    <button type="button" class="user-restore rounded bg-indigo-600 text-white px-2 py-1 text-xs hover:bg-indigo-700 shrink-0" data-id="${u.id}">Restore</button>
+                </div>
+            `).join('');
+            el.querySelectorAll('.user-restore').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    if (confirm('Restore this user?')) {
+                        const id = e.currentTarget.dataset.id;
+                        const { ok: okRestore } = await api('/admin/users/' + id + '/restore', { method: 'POST' });
+                        if (okRestore) { showToast('User restored'); loadUsers(); loadDeletedUsers(); }
+                        else showToast('Restore failed');
+                    }
+                });
+            });
+        }
 
         async function loadLogs() {
             const { ok, data } = await api('/admin/logs');

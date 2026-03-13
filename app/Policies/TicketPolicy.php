@@ -84,4 +84,14 @@ class TicketPolicy
     {
         return $this->view($user, $ticket);
     }
+
+    public function ticketRestore(User $user): bool
+    {
+        return $user->isAdmin();
+    }
+
+    public function indexDeleted(User $user): bool
+    {
+        return $user->isAdmin();
+    }
 }
